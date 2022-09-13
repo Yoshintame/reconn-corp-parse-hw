@@ -3,3 +3,5 @@
 /.env
 /reconnLocal_user.p12
 /reconnLocal.pem
+/draft.py
+/.idea/
