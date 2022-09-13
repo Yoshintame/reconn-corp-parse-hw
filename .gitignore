@@ -1,0 +1,5 @@
+/myCert.crt
+/myKey.key
+/.env
+/reconnLocal_user.p12
+/reconnLocal.pem
