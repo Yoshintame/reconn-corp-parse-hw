@@ -45,7 +45,19 @@ def parse_hw_page(session, headers, hw_number):
             'unit'
     """
 
-    hw_info = {}
+    hw_info = {
+        "hw_url": None,
+        "hw": None,
+        "name": None,
+        "comment": None,
+        "client_comment": None,
+        "placement_facility": None,
+        "serial_number": None,
+        "manufacturer": None,
+        "units_amount": None,
+        "rack": None,
+        "unit": None
+    }
 
     hw_url = HW_URL_TEMPLATE + str(hw_number)
     hw_info["hw_url"] = hw_url
@@ -70,15 +82,50 @@ def parse_hw_page(session, headers, hw_number):
                 hw_info["manufacturer"] = td
             case "Количество юнитов":
                 hw_info["units_amount"] = td
+            case "Количество юнитов":
+                hw_info["units_amount"] = td
+            case "Комментарий":
+                hw_info["comment"] = td
+            case "Комментарий клиента":
+                hw_info["client_comment"] = td
 
-    table_elements = soup.findAll("table", {"class": "table"})[1].findAll("tr")
-    for tr in table_elements:
-        td = tr.td.text.strip()
-        match tr.th.text.strip():
-            case "Стойка":
-                hw_info["rack"] = td
-            case "Юнит":
-                hw_info["unit"] = td
+
+    panel_bodys = soup.find_all("div", {"class": "panel-body"})
+    placement_body = None
+    for panel_body in panel_bodys:
+        panel_body_h3_array = panel_body.findAll("h3")
+        for h3 in panel_body_h3_array:
+            if ("Размещение" in h3.text.strip()):
+                placement_body = panel_body
+                break
+
+    if (placement_body):
+        logger.info("found placement_body")
+
+        panel_body_h4_array = placement_body.findAll("h4")
+        placement_facility_h4 = None
+        for h4 in panel_body_h4_array:
+            if ("Размещено на объекте:" in h4.text.strip()):
+                placement_facility_h4 = h4
+                break
+
+        if (placement_facility_h4):
+            logger.info("found placement_facility_h4")
+            hw_info["placement_facility"] = placement_facility_h4.find("a").text.strip()
+            # hw_info["placement_facility_url"] = placement_facility_h4.get_value("href")
+
+        placement_table = placement_body.find("table", {"class": "table"})
+        if placement_table:
+            logger.info("found placement_table")
+            placement_table_trs = placement_table.findAll("tr")
+            if (placement_table_trs):
+                for tr in placement_table_trs:
+                    td = tr.td.text.strip()
+                    match tr.th.text.strip():
+                        case "Стойка":
+                            hw_info["rack"] = td
+                        case "Юнит":
+                            hw_info["unit"] = td
 
     logger.info(hw_info)
     return hw_info
@@ -109,7 +156,7 @@ def corp_authentication(session, headers):
                             verify='reconnLocal.pem',
                             cert=('myCert.crt', 'myKey.key'))
 
-    logger.info(response)
+    logger.info(f"Corp authentication: {response}")
     return
 
 
@@ -118,4 +165,4 @@ if __name__ == "__main__":
 
     corp_authentication(session, headers)
 
-    parse_hw_page(session, headers, 1548)
+    parse_hw_page(session, headers, 2157)
