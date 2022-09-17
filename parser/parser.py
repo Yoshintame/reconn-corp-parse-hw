@@ -1,8 +1,11 @@
+from typing import Optional
+
 import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
 from config import CORP_USERNAME, CORP_PASSWORD
 from loguru import logger
+
 
 HW_URL_TEMPLATE = "https://corp.reconn.local/device/"
 AUTH_URL = "https://corp.reconn.local/login"
@@ -24,7 +27,7 @@ headers = {
 }
 
 
-def parse_hw_page(session, headers, hw_number):
+def parse_hw_page(session, headers: dict[str, str], hw_number: str | int) -> dict[str, Optional[str]]:
     """
     parse corp hw page
 
@@ -52,6 +55,7 @@ def parse_hw_page(session, headers, hw_number):
         "comment": None,
         "client_comment": None,
         "placement_facility": None,
+        "placement_facility_url": None,
         "serial_number": None,
         "manufacturer": None,
         "units_amount": None,
@@ -65,8 +69,8 @@ def parse_hw_page(session, headers, hw_number):
 
     response = session.get(hw_url,
                            headers=headers,
-                           verify='reconnLocal.pem',
-                           cert=('myCert.crt', 'myKey.key'))
+                           verify='parser/reconnLocal.pem',
+                           cert=('parser/myCert.crt', 'parser/myKey.key'))
     soup = BeautifulSoup(response.content, 'lxml')
 
     table_elements = soup.find("table", {"class": "table table-striped table-bordered detail-view"}).findAll("tr")
@@ -112,7 +116,7 @@ def parse_hw_page(session, headers, hw_number):
         if (placement_facility_h4):
             logger.info("found placement_facility_h4")
             hw_info["placement_facility"] = placement_facility_h4.find("a").text.strip()
-            # hw_info["placement_facility_url"] = placement_facility_h4.get_value("href")
+            hw_info["placement_facility_url"] = placement_facility_h4.find("a").get("href")
 
         placement_table = placement_body.find("table", {"class": "table"})
         if placement_table:
@@ -134,8 +138,8 @@ def parse_hw_page(session, headers, hw_number):
 def corp_authentication(session, headers):
     response = session.get(AUTH_URL,
                            headers=headers,
-                           verify='reconnLocal.pem',
-                           cert=('myCert.crt', 'myKey.key'))
+                           verify='parser/reconnLocal.pem',
+                           cert=('parser/myCert.crt', 'parser/myKey.key'))
 
     soup = BeautifulSoup(response.content, 'lxml')
     auth_token = soup.find_all("input", {"name": "_token"})[0].get("value")
@@ -153,8 +157,8 @@ def corp_authentication(session, headers):
                             headers=headers,
                             data=auth_data,
                             cookies=session.cookies,
-                            verify='reconnLocal.pem',
-                            cert=('myCert.crt', 'myKey.key'))
+                            verify='parser/reconnLocal.pem',
+                            cert=('parser/myCert.crt', 'parser/myKey.key'))
 
     logger.info(f"Corp authentication: {response}")
     return
@@ -165,4 +169,4 @@ if __name__ == "__main__":
 
     corp_authentication(session, headers)
 
-    parse_hw_page(session, headers, 2157)
+    parse_hw_page(session, headers, 2132)

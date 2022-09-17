@@ -1,7 +1,8 @@
-/myCert.crt
-/myKey.key
+/parser/myCert.crt
+/parser/myKey.key
 /.env
 /reconnLocal_user.p12
-/reconnLocal.pem
-/draft.py
+/parser/reconnLocal.pem
 /.idea/
+/anon.session
+/bot.session
