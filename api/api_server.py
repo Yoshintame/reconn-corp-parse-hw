@@ -1,32 +1,41 @@
 from loguru import logger
-from flask import Flask
-from flask_restful import Api, Resource
-import requests
+import asyncio
+from aiohttp import web
 
-from parser.parser import parse_hw_page, corp_authentication, headers
-from telegram_bot.utils import create_hw_data_message
-from telegram_bot.bot_handlers import send_message_as_bot
-
-app = Flask(__name__)
-api = Api(app)
-
-class PublicApi(Resource):
-    def post(self, hw_number: str):
-        hw_data = parse_hw_page(corp_session, headers, hw_number)
-        logger.info(hw_data)
-        message = create_hw_data_message(hw_data)
-
-        logger.info(message)
-        # send_message_as_bot(user="yoshintame",message=message)
-        return hw_data
+def say_hello(request):
+    return web.Response(
+        text="Hello, {}".format(request.match_info['name']))
 
 
-api.add_resource(PublicApi, "/api/hw<int:hw_number>")
+def four_hundred_one(request):
+    return web.HTTPUnauthorized(reason="I must simulate errors.", text="Simulated server error.")
+
+
+def five_hundred(request):
+    return web.HTTPInternalServerError(reason="I must simulate errors.", text="Simulated server error.")
+
+
+def raise_exception(request):
+    raise Exception("Simulated exception")
+
+async def start_site(loop, app, address='localhost', port=8080):
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, address, port)
+    await site.start()
+    # loop.run_until_complete(site.start())
 
 
 if __name__ == "__main__":
-    corp_session = requests.Session()
-    corp_authentication(corp_session, headers)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    app.run(debug=True)
+    app = web.Application(debug=True)
+    app.add_routes([web.get(r'/{name:\d+}', say_hello)])
+    app.add_routes([web.get('/401', four_hundred_one)])
+    app.add_routes([web.get('/500', five_hundred)])
+    app.add_routes([web.get('/exception', raise_exception)])
+
+    loop.create_task(start_site(loop, app))
+    loop.run_forever()
 

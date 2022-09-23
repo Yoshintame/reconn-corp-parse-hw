@@ -5,4 +5,4 @@
 /parser/reconnLocal.pem
 /.idea/
 /anon.session
-/bot.session
+/telegram_bot/bot.session

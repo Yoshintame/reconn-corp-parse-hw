@@ -1,4 +1,5 @@
 from typing import Optional
+import os
 
 import requests
 from bs4 import BeautifulSoup
@@ -26,8 +27,10 @@ headers = {
     'Sec-Fetch-User': '?1',
 }
 
+session = requests.Session()
 
-def parse_hw_page(session, headers: dict[str, str], hw_number: str | int) -> dict[str, Optional[str]]:
+
+def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
     """
     parse corp hw page
 
@@ -65,7 +68,7 @@ def parse_hw_page(session, headers: dict[str, str], hw_number: str | int) -> dic
 
     hw_url = HW_URL_TEMPLATE + str(hw_number)
     hw_info["hw_url"] = hw_url
-    hw_info["hw"] = f"HW{hw_number}"
+    hw_info["hw"] = hw_number
 
     response = session.get(hw_url,
                            headers=headers,
@@ -135,7 +138,7 @@ def parse_hw_page(session, headers: dict[str, str], hw_number: str | int) -> dic
     return hw_info
 
 
-def corp_authentication(session, headers):
+def corp_authentication():
     response = session.get(AUTH_URL,
                            headers=headers,
                            verify='parser/reconnLocal.pem',
@@ -165,8 +168,6 @@ def corp_authentication(session, headers):
 
 
 if __name__ == "__main__":
-    session = requests.Session()
+    corp_authentication()
+    parse_hw_page(1123)
 
-    corp_authentication(session, headers)
-
-    parse_hw_page(session, headers, 2132)

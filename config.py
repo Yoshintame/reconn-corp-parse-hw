@@ -18,6 +18,7 @@ TELEGRAM_BOT_API_TOKEN = check_and_set_env("TELEGRAM_BOT_API_TOKEN")
 TELEGRAM_API_ID = int(check_and_set_env("TELEGRAM_API_ID"))
 TELEGRAM_API_HASH = check_and_set_env("TELEGRAM_API_HASH")
 
+TELEGRAM_ACCESS_ID = check_and_set_env("TELEGRAM_ACCESS_ID")
 
 # Parser
 # CRT_PATH =
