@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from pprint import pprint
 from config import CORP_USERNAME, CORP_PASSWORD
 from loguru import logger
+# import validators
 
 
 HW_URL_TEMPLATE = "https://corp.reconn.local/device/"
@@ -29,15 +30,18 @@ headers = {
 
 session = requests.Session()
 
+def parse_hw_page_by_hw_number(hw: str | int) -> dict[str, Optional[str]]:
+    hw_url = HW_URL_TEMPLATE + str(hw)
+    return parse_hw_page(hw_url)
 
-def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
+def parse_hw_page(hw_url: str | int) -> dict[str, Optional[str]]:
     """
     parse corp hw page
 
     Args:
         session: request session object
         headers: http headers
-        hw: hardware number for link
+        hw: hardware number without "hw" or valide url
 
     Returns:
         dict:
@@ -51,12 +55,15 @@ def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
             'unit'
     """
 
+    logger.info(f"Start parsing {hw_url}")
     hw_info = {
         "hw_url": None,
-        "hw": None,
+        "id": None,
         "name": None,
         "comment": None,
+        "client":None,
         "client_comment": None,
+        "parent_device": None,
         "placement_facility": None,
         "placement_facility_url": None,
         "serial_number": None,
@@ -66,9 +73,12 @@ def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
         "unit": None
     }
 
-    hw_url = HW_URL_TEMPLATE + str(hw_number)
+    parent_device_url = None
+
+    # if not validators.url(hw_url):
+    #     raise ValueError("Not valid url")
+
     hw_info["hw_url"] = hw_url
-    hw_info["hw"] = hw_number
 
     response = session.get(hw_url,
                            headers=headers,
@@ -81,8 +91,13 @@ def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
         # print(tr.th.text.strip() + ": " + tr.td.text.strip())
         td = tr.td.text.strip()
         match tr.th.text.strip():
+            case "ID":
+                hw_info["id"] = td
             case "Название":
                 hw_info["name"] = td
+            case "Родительское устройство":
+                if tr.td.find("a"):
+                    parent_device_url = tr.td.find("a").get("href")
             case "Серийный номер":
                 hw_info["serial_number"] = td
             case "Производитель":
@@ -95,7 +110,8 @@ def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
                 hw_info["comment"] = td
             case "Комментарий клиента":
                 hw_info["client_comment"] = td
-
+            case "Владелец":
+                hw_info["client"] = td
 
     panel_bodys = soup.find_all("div", {"class": "panel-body"})
     placement_body = None
@@ -134,9 +150,11 @@ def parse_hw_page(hw_number: str | int) -> dict[str, Optional[str]]:
                         case "Юнит":
                             hw_info["unit"] = td
 
+    if parent_device_url is not None:
+        hw_info["parent_device"] = parse_hw_page(parent_device_url)
+
     logger.info(hw_info)
     return hw_info
-
 
 def corp_authentication():
     response = session.get(AUTH_URL,
@@ -169,5 +187,6 @@ def corp_authentication():
 
 if __name__ == "__main__":
     corp_authentication()
-    parse_hw_page(1123)
+    hw_info = parse_hw_page_by_hw_number(2935)
+    pprint(hw_info)
 
