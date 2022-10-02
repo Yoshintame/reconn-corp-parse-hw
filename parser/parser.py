@@ -6,12 +6,23 @@ from bs4 import BeautifulSoup
 from pprint import pprint
 from config import CORP_USERNAME, CORP_PASSWORD
 from loguru import logger
-# import validators
+from html2image import Html2Image
 
+hti = Html2Image()
 
 HW_URL_TEMPLATE = "https://corp.reconn.local/device/"
 AUTH_URL = "https://corp.reconn.local/login"
 AUTH_LDAP_URL = "https://corp.reconn.local/login/ldap/login"
+TIMETABLE_URL = "https://corp.reconn.local/timetable"
+
+DC_DUTYS = [
+    "Александр Козмолич",
+    "Александр Флотский",
+    "Георгий Раковский",
+    "Михаил Иванов",
+    "Михаил Тверской",
+    "Павел Пензин"
+]
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
@@ -29,6 +40,52 @@ headers = {
 }
 
 session = requests.Session()
+
+def parse_schedule_as_png(full: bool) -> str:
+    response = session.get(
+        TIMETABLE_URL,
+        headers=headers,
+        verify='parser/reconnLocal.pem',
+        cert=('parser/myCert.crt', 'parser/myKey.key'))
+
+    table = BeautifulSoup(response.content, 'lxml').find("table", {"class": "table table-bordered"})
+
+    rows_count = 0
+    if full:
+        table_html = str(table)
+        rows_count = len(table.findAll("tr"))
+    else:
+        table_elements = table.findAll("tr")
+        for tr in table_elements:
+            dc_duty = tr.td.text.strip()
+            if dc_duty not in DC_DUTYS:
+                tr.decompose()
+            else:
+                rows_count = rows_count + 1
+        table_html = str(table)
+
+    heigh = rows_count * 30 + 60
+
+    SCHEDULE_HTML = f"""
+        <head>
+            <link rel="stylesheet" href="schedule.css">
+        </head>
+        <body>
+            {table_html}
+        </body>
+        </html> 
+    """
+
+    PATH_TO_SCHEDULE_IMAGE = "schedule.png"
+
+    hti.screenshot(
+        html_str=SCHEDULE_HTML,
+        css_file='parser/schedule.css',
+        save_as=PATH_TO_SCHEDULE_IMAGE,
+        size=(1350, round(heigh))
+    )
+
+    return PATH_TO_SCHEDULE_IMAGE
 
 def parse_hw_page_by_hw_number(hw: str | int) -> dict[str, Optional[str]]:
     hw_url = HW_URL_TEMPLATE + str(hw)
@@ -187,6 +244,6 @@ def corp_authentication():
 
 if __name__ == "__main__":
     corp_authentication()
-    hw_info = parse_hw_page_by_hw_number(2935)
-    pprint(hw_info)
-
+    # hw_info = parse_hw_page_by_hw_number(2935)
+    # pprint(hw_info)
+    parse_schedule_as_png(False)

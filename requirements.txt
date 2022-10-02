@@ -3,4 +3,6 @@ bs4~=0.0.1
 beautifulsoup4~=4.11.1
 loguru~=0.6.0
 python-dotenv~=0.21.0
-Flask~=2.2.2
+aiohttp~=3.8.1
+aiogram~=2.22.1
+html2image~=2.0.1
